@@ -1,0 +1,12 @@
+featuretools
+flask
+pandas
+autonormalize
+tqdm
+dask
+sklearn
+haversine
+pyzipcode
+phone_iso3166
+nltk
+psutil
