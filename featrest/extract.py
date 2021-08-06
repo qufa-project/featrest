@@ -1,5 +1,6 @@
 from flask import (request, abort)
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
+from featuretools.mkfeat.error import Error
 
 
 extractors = []
@@ -25,10 +26,12 @@ def start_task():
     operators = json_in['operator']
 
     extractor = FeatureExtractor()
-    extractor.load(path, columns)
+    err = extractor.load(path, columns)
+    if err == Error.OK:
+        extractor.extract_features(operators)
+        tid = _reg_extractor(extractor)
 
-    extractor.extract_features(operators)
-    tid = _reg_extractor(extractor)
-
-    return {"tid": tid}
-
+        return {"tid": tid}
+    if err == Error.ERR_DATA_NOT_FOUND:
+        abort(401)
+    abort(500)
