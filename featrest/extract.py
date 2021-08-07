@@ -24,7 +24,7 @@ def _find_extractor(tid) -> FeatureExtractor:
 
 
 def _remove_extractor(tid):
-    if tid > 0 and len(extractors) < tid:
+    if tid > 0 and len(extractors) <= tid:
         extractors[tid - 1] = None
 
 

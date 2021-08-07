@@ -1,5 +1,6 @@
 from flask import Flask
 import extract
+import importance
 
 
 app = Flask("featrest")
@@ -33,3 +34,28 @@ def stop_extract_task(tid):
 @app.route("/extract/<int:tid>", methods=['DELETE'])
 def remove_extract_task(tid):
     return extract.remove_task(tid)
+
+
+@app.route("/importance", methods=['POST'])
+def create_importance_task():
+    return importance.start_task()
+
+
+@app.route("/importance/<int:tid>/status", methods=['GET'])
+def status_importance_task(tid):
+    return importance.status_task(tid)
+
+
+@app.route("/importance/<int:tid>", methods=['GET'])
+def get_importance(tid):
+    return importance.get_importance(tid)
+
+
+@app.route("/importance/<int:tid>/stop", methods=['PUT'])
+def stop_importance_task(tid):
+    return importance.stop_task(tid)
+
+
+@app.route("/importance/<int:tid>", methods=['DELETE'])
+def remove_importance_task(tid):
+    return importance.remove_task(tid)
