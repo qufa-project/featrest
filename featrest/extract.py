@@ -1,4 +1,4 @@
-from flask import (request, abort)
+from flask import (request, abort, jsonify)
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
 
@@ -13,6 +13,17 @@ def _reg_extractor(extractor):
             return tid
     extractors.append(extractor)
     return len(extractors)
+
+
+def _find_extractor(tid) -> FeatureExtractor:
+    if tid > 0 and len(extractors) < tid:
+        return None
+    return extractors[tid - 1]
+
+
+def _remove_extractor(tid):
+    if tid > 0 and len(extractors) < tid:
+        extractors[tid - 1] = None
 
 
 def start_task():
@@ -35,3 +46,42 @@ def start_task():
     if err == Error.ERR_DATA_NOT_FOUND:
         abort(401)
     abort(500)
+
+
+def status_task(tid):
+    extractor = _find_extractor(tid)
+    if extractor is None:
+        abort(501)
+    return {"progress": extractor.get_progress()}
+
+
+def get_featureinfo(tid):
+    extractor = _find_extractor(tid)
+    if extractor is None:
+        abort(501)
+    prog = extractor.get_progress()
+    if prog != 100:
+        abort(503)
+
+    infos = extractor.get_feature_info()
+    if isinstance(infos, list):
+        res = []
+        for info in infos:
+            res.append({"name": info[0], "type": info[1]})
+        return jsonify(res)
+
+    if infos == Error.ERR_ONGOING:
+        abort(503)
+    abort(500)
+
+
+def remove_task(tid):
+    extractor = _find_extractor(tid)
+    if extractor is None:
+        abort(501)
+    prog = extractor.get_progress()
+    if prog != 100:
+        abort(503)
+    _remove_extractor(tid)
+
+    return ""
