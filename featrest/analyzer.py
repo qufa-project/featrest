@@ -71,9 +71,12 @@ class Analyzer(FeatureImportance):
         return self._prog
 
     def _deplete_progress(self):
-        while self._conn.poll():
-            prog = self._conn.recv()
-            if isinstance(prog, int):
-                self._prog = prog
-            else:
-                self._importance = prog
+        try:
+            while self._conn.poll():
+                prog = self._conn.recv()
+                if isinstance(prog, int):
+                    self._prog = prog
+                else:
+                    self._importance = prog
+        except EOFError:
+            pass

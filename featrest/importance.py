@@ -59,8 +59,8 @@ def get_importance(tid):
         abort(503)
 
     importance = analyzer.get_importance()
-    if isinstance(importance, dict):
-        return importance
+    if isinstance(importance, list):
+        return jsonify(importance)
 
     if importance == Error.ERR_ONGOING:
         abort(503)
