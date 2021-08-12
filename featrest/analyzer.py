@@ -15,18 +15,19 @@ class Analyzer(FeatureImportance):
     def _progress_handler(self, prog):
         self._conn.send(prog)
 
-    def _analyze_func(self, path_data, path_label, conn):
+    def _analyze_func(self, path_data, columns_data, path_label, columns_label, conn):
         self._conn = conn
-        err = self.load(path_data, path_label)
+        err = self.load(path_data, columns_data, path_label, columns_label)
         conn.send(err)
         if err != Error.OK:
             return
         self.analyze(self._progress_handler)
         conn.send(super().get_importance())
 
-    def start(self, path_data, path_label):
+    def start(self, path_data, columns_data, path_label, columns_label):
         conn_parent, conn_child = Pipe()
-        self._proc = Process(target=self._analyze_func, args=(path_data, path_label, conn_child))
+        self._proc = Process(target=self._analyze_func,
+                             args=(path_data, columns_data, path_label, columns_label, conn_child))
         self._proc.start()
         self._conn = conn_parent
         return conn_parent.recv()

@@ -28,13 +28,29 @@ def _remove_analyzer(tid):
 
 
 def start_task():
-    path_data = request.args.get("data")
-    path_label = request.args.get("label")
-    if path_data is None or path_label is None:
+    json_in = request.json
+    if json_in is None:
+        abort(400)
+    if 'data' not in json_in:
+        abort(400)
+    json_data = json_in['data']
+    if 'uri' not in json_data or 'columns' not in json_data:
         abort(400)
 
+    path_data = json_data['uri']
+    columns_data = json_data['columns']
+
+    path_label = None
+    columns_label = None
+    if 'label' in json_in:
+        json_label = json_in['label']
+        if 'uri' not in json_label or 'columns' not in json_label:
+            abort(400)
+        path_label = json_label['uri']
+        columns_label = json_label['columns']
+
     analyzer = Analyzer()
-    err = analyzer.start(path_data, path_label)
+    err = analyzer.start(path_data, columns_data, path_label, columns_label)
     if err == Error.OK:
         tid = _reg_analyzer(analyzer)
         return {"tid": tid}

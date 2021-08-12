@@ -29,13 +29,17 @@ def _remove_extractor(tid):
 
 
 def start_task():
-    path = request.args.get("data")
     json_in = request.json
-    if path is None or json_in is None:
+    if json_in is None:
         abort(400)
-    if 'columns' not in json_in or 'operator' not in json_in:
+    if 'data' not in json_in or 'operator' not in json_in:
         abort(400)
-    columns = json_in['columns']
+    json_data = json_in['data']
+    if 'uri' not in json_data or 'columns' not in json_data:
+        abort(400)
+
+    path = json_data['uri']
+    columns = json_data['columns']
     operators = json_in['operator']
 
     extractor = Extractor()
@@ -87,9 +91,9 @@ def save_task(tid):
     json_in = request.json
     if json_in is None:
         abort(400)
-    if 'id' not in json_in:
+    if 'uri' not in json_in:
         abort(400)
-    path = json_in['id']
+    path = json_in['uri']
     extractor.save(path)
 
     return ""
