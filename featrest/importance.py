@@ -23,7 +23,7 @@ def _find_analyzer(tid) -> Analyzer:
 
 
 def _remove_analyzer(tid):
-    if tid > 0 and len(_analyzers) <= tid:
+    if 0 < tid <= len(_analyzers):
         _analyzers[tid - 1] = None
 
 
