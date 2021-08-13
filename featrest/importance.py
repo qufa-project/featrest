@@ -49,8 +49,8 @@ def start_task():
         path_label = json_label['uri']
         columns_label = json_label['columns']
 
-    analyzer = Analyzer()
-    err = analyzer.start(path_data, columns_data, path_label, columns_label)
+    analyzer = Analyzer(path_data, columns_data, path_label, columns_label)
+    err = analyzer.start()
     if err == Error.OK:
         tid = _reg_analyzer(analyzer)
         return {"tid": tid}
@@ -71,8 +71,6 @@ def get_importance(tid):
     analyzer = _find_analyzer(tid)
     if analyzer is None:
         abort(501)
-    if not analyzer.is_completed():
-        abort(503)
 
     importance = analyzer.get_importance()
     if isinstance(importance, list):
@@ -80,6 +78,8 @@ def get_importance(tid):
 
     if importance == Error.ERR_ONGOING:
         abort(503)
+    elif importance == Error.ERR_STOPPED:
+        abort(502)
     abort(500)
 
 
@@ -87,20 +87,24 @@ def stop_task(tid):
     analyzer = _find_analyzer(tid)
     if analyzer is None:
         abort(501)
-    if not analyzer.is_running():
+    err = analyzer.stop()
+    if err == Error.OK:
+        return ""
+    if err == Error.ERR_STOPPED:
         abort(502)
-    analyzer.stop()
-
-    return ""
+    elif err == Error.ERR_ONGOING:
+        abort(503)
+    abort(500)
 
 
 def remove_task(tid):
     analyzer = _find_analyzer(tid)
     if analyzer is None:
         abort(501)
-    if analyzer.is_running():
+    err = analyzer.cleanup()
+    if err == Error.OK:
+        _remove_analyzer(tid)
+        return ""
+    if err == Error.ERR_ONGOING:
         abort(503)
-    analyzer.cleanup()
-    _remove_analyzer(tid)
-
-    return ""
+    abort(500)
