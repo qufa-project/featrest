@@ -1,3 +1,5 @@
+import typing
+
 from flask import (request, abort, jsonify)
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
@@ -17,7 +19,7 @@ def _reg_extractor(extractor):
     return len(extractors)
 
 
-def _find_extractor(tid) -> FeatureExtractor:
+def _find_extractor(tid) -> typing.Optional[FeatureExtractor]:
     if tid > 0 and len(extractors) < tid:
         return None
     return extractors[tid - 1]
@@ -64,8 +66,6 @@ def get_featureinfo(tid):
     extractor = _find_extractor(tid)
     if extractor is None:
         abort(501)
-    if not extractor.is_completed():
-        abort(503)
 
     infos = extractor.get_feature_info()
     if isinstance(infos, list):
@@ -74,49 +74,56 @@ def get_featureinfo(tid):
             res.append({"name": info[0], "type": info[1]})
         return jsonify(res)
 
+    if infos == Error.ERR_STOPPED:
+        abort(502)
     if infos == Error.ERR_ONGOING:
         abort(503)
     abort(500)
 
 
 def save_task(tid):
-    extractor = _find_extractor(tid)
-    if extractor is None:
-        abort(501)
-    if extractor.is_running():
-        abort(503)
-    if not extractor.is_completed():
-        abort(502)
-
     json_in = request.json
     if json_in is None:
         abort(400)
     if 'uri' not in json_in:
         abort(400)
-    path = json_in['uri']
-    extractor.save(path)
-
-    return ""
+    extractor = _find_extractor(tid)
+    if extractor is None:
+        abort(501)
+    else:
+        path = json_in['uri']
+        err = extractor.save(path)
+        if err == Error.OK:
+            return ""
+        if err == Error.ERR_STOPPED:
+            abort(502)
+        if err == Error.ERR_ONGOING:
+            abort(503)
+        abort(500)
 
 
 def stop_task(tid):
     extractor = _find_extractor(tid)
     if extractor is None:
         abort(501)
-    if not extractor.is_running():
-        abort(502)
-    extractor.stop()
-
-    return ""
+    else:
+        err = extractor.stop()
+        if err == Error.OK:
+            return ""
+        if err == Error.ERR_STOPPED:
+            abort(502)
+        abort(500)
 
 
 def remove_task(tid):
     extractor = _find_extractor(tid)
     if extractor is None:
         abort(501)
-    if extractor.is_running():
-        abort(503)
-    extractor.cleanup()
-    _remove_extractor(tid)
-
-    return ""
+    else:
+        err = extractor.cleanup()
+        if err == Error.OK:
+            _remove_extractor(tid)
+            return ""
+        if err == Error.ERR_ONGOING:
+            abort(503)
+        abort(500)
