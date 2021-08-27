@@ -44,14 +44,28 @@ def start_task():
     columns = json_data['columns']
     operators = json_in['operator']
 
-    extractor = Extractor()
-    err = extractor.start(path, columns, operators)
+    extractor = Extractor(path, columns)
+    err = extractor.start(operators)
     if err == Error.OK:
         tid = _reg_extractor(extractor)
 
         return {"tid": tid}
     if err == Error.ERR_DATA_NOT_FOUND:
-        abort(401)
+        abort(501)
+    elif err == Error.ERR_COLUMN_TYPE:
+        abort(502)
+    elif err == Error.ERR_COLUMN_COUNT_MISMATCH:
+        abort(503)
+    elif err == Error.ERR_COLUMN_HAS_NO_NAME_OR_TYPE:
+        abort(504)
+    elif err == Error.ERR_COLUMN_NO_KEY:
+        abort(505)
+    elif err == Error.ERR_COLUMN_MULTI_KEY:
+        abort(506)
+    elif err == Error.ERR_COLUMN_MULTI_LABEL:
+        abort(507)
+    elif err == Error.ERR_COLUMN_KEY_AND_LABEL:
+        abort(508)
     abort(500)
 
 

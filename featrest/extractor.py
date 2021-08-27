@@ -7,8 +7,8 @@ from featuretools.mkfeat.error import Error
 
 
 class Extractor(FeatureExtractor):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, path, columns):
+        super().__init__(path, columns, self._progress_handler)
         self._proc = None
         self._conn = None
         self._progListener: typing.Optional[ProgListener] = None
@@ -26,25 +26,25 @@ class Extractor(FeatureExtractor):
             elif msg[0] == "exit":
                 break
 
-    def _extractor_func(self, path, columns, operators, conn):
+    def _extractor_func(self, operators, conn):
         self._conn = conn
-        err = self.load(path, columns)
-        conn.send(err)
+        err = self.extract_features(operators)
         if err != Error.OK:
-            return
-        self.extract_features(operators, self._progress_handler)
-        self._msgloop()
+            self._conn.send(err)
+        else:
+            self._msgloop()
 
-    def start(self, path, columns, operators):
+    def start(self, operators):
         conn_parent, conn_child = Pipe()
-        self._proc = Process(target=self._extractor_func, args=(path, columns, operators, conn_child))
+        self._proc = Process(target=self._extractor_func, args=(operators, conn_child))
         self._proc.start()
-        err = conn_parent.recv()
-        if err == Error.OK:
-            self._conn = conn_parent
-            self._progListener = ProgListener(conn_parent)
-            self._progListener.start()
-        return err
+        self._conn = conn_parent
+        self._progListener = ProgListener(conn_parent)
+        self._progListener.start()
+        self._progListener.join(0.5)
+        if self._is_running() or self._is_completed():
+            return Error.OK
+        return self._progListener.prog
 
     def save(self, path) -> Error:
         if self._is_running():
@@ -107,9 +107,11 @@ class ProgListener(threading.Thread):
         while True:
             try:
                 prog = self._conn.recv()
+                self.prog = prog
                 if isinstance(prog, int):
-                    self.prog = prog
                     if prog == 100:
                         break
+                else:
+                    break
             except EOFError:
                 break
