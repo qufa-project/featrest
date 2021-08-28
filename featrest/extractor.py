@@ -5,6 +5,8 @@ import typing
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
 
+from errpage import ErrorSvc
+
 
 class Extractor(FeatureExtractor):
     def __init__(self, path, columns):
@@ -50,7 +52,7 @@ class Extractor(FeatureExtractor):
         if self._is_running():
             return Error.ERR_ONGOING
         if not self._is_completed():
-            return Error.ERR_STOPPED
+            return ErrorSvc.ERR_STOPPED
         self._conn.send(["save", path])
         return Error.OK
 
@@ -58,18 +60,20 @@ class Extractor(FeatureExtractor):
         if self._is_running():
             return Error.ERR_ONGOING
         if not self._is_completed():
-            return Error.ERR_STOPPED
+            return None
         self._conn.send(["featureinfo"])
         return self._conn.recv()
 
     def stop(self):
-        if not self._is_running() or self._proc is None:
-            return Error.ERR_STOPPED
+        if self._proc is None:
+            return ErrorSvc.ERR_STOPPED
         self._proc.terminate()
         self._proc.join(1)
         if self._proc.is_alive():
             return Error.ERR_ONGOING
         self._proc = None
+        if self._is_completed():
+            return ErrorSvc.ERR_COMPLETED
         return Error.OK
 
     def cleanup(self):
@@ -90,10 +94,15 @@ class Extractor(FeatureExtractor):
     def _is_completed(self):
         return self._progListener.prog == 100
 
+    def _is_stopped(self):
+        return not self._progListener.is_alive() and self._progListener.prog != 100
+
     def _is_running(self):
         return self._progListener.is_alive() and self._progListener.prog < 100
 
     def get_progress(self):
+        if self._is_stopped():
+            return None
         return self._progListener.prog
 
 

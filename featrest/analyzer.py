@@ -1,9 +1,9 @@
-from multiprocessing import (Process, Pipe)
-
 from featuretools.mkfeat.feat_importance import FeatureImportance
 from featuretools.mkfeat.error import Error
 
 import threading
+
+from errpage import ErrorSvc
 
 
 class Analyzer(threading.Thread):
@@ -25,20 +25,23 @@ class Analyzer(threading.Thread):
         return False
 
     def run(self):
-        self._impt.analyze(self._progress_handler)
+        err = self._impt.analyze()
+        if err != Error.OK:
+            self._prog = err
 
     def start(self) -> Error:
-        self._impt = FeatureImportance()
-        err = self._impt.load(self._path_data, self._columns_data, self._path_label, self._columns_label)
-        if err != Error.OK:
-            return err
+        self._impt = FeatureImportance(self._path_data, self._columns_data, self._path_label, self._columns_label,
+                                       self._progress_handler)
 
         super().start()
-        return Error.OK
+        self.join(0.5)
+        if self.is_alive() or self._prog == 100:
+            return Error.OK
+        return self._prog
 
     def stop(self):
         if not self.is_alive():
-            return Error.ERR_STOPPED
+            return ErrorSvc.ERR_STOPPED
         self._stopping = True
         self.join(30)
         if self.is_alive():
@@ -55,10 +58,14 @@ class Analyzer(threading.Thread):
         if self.is_alive():
             return Error.ERR_ONGOING
         if self._prog != 100:
-            return Error.ERR_STOPPED
+            return ErrorSvc.ERR_STOPPED
         return self._impt.get_importance()
 
     def get_progress(self):
-        if self._prog == 100 or self.is_alive():
+        if self.is_alive():
+            if self._prog is None:
+                return 0
             return self._prog
-        return 0
+        elif self._prog == 0:
+            return 100
+        return None

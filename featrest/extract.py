@@ -1,10 +1,14 @@
 import typing
+from typing import Union
 
-from flask import (request, abort, jsonify)
+from flask import (request, jsonify)
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
 
 from extractor import Extractor
+from errpage import (error_page, error_page_wrong_json, error_page_data_not_found, error_page_no_task,
+                     error_page_not_completed, error_page_already_completed, error_page_stopped, error_page_unknown,
+                     ErrorSvc)
 
 
 extractors = []
@@ -33,12 +37,12 @@ def _remove_extractor(tid):
 def start_task():
     json_in = request.json
     if json_in is None:
-        abort(400)
+        return error_page_wrong_json()
     if 'data' not in json_in or 'operator' not in json_in:
-        abort(400)
+        return error_page(400, Error.ERR_INVALID_ARG, "no 'data' object found in JSON request body")
     json_data = json_in['data']
     if 'uri' not in json_data or 'columns' not in json_data:
-        abort(400)
+        return error_page(400, Error.ERR_INVALID_ARG, "no 'uri' or 'columns' found in data object")
 
     path = json_data['uri']
     columns = json_data['columns']
@@ -48,38 +52,44 @@ def start_task():
     err = extractor.start(operators)
     if err == Error.OK:
         tid = _reg_extractor(extractor)
-
         return {"tid": tid}
+
     if err == Error.ERR_DATA_NOT_FOUND:
-        abort(501)
-    elif err == Error.ERR_COLUMN_TYPE:
-        abort(502)
+        return error_page_data_not_found()
     elif err == Error.ERR_COLUMN_COUNT_MISMATCH:
-        abort(503)
+        errmsg = "The numbers of columns do not match"
     elif err == Error.ERR_COLUMN_HAS_NO_NAME_OR_TYPE:
-        abort(504)
+        errmsg = "There exists a column which has no name or type"
     elif err == Error.ERR_COLUMN_NO_KEY:
-        abort(505)
+        errmsg = "There's no key column"
     elif err == Error.ERR_COLUMN_MULTI_KEY:
-        abort(506)
+        errmsg = "There are multiple key columns"
     elif err == Error.ERR_COLUMN_MULTI_LABEL:
-        abort(507)
+        errmsg = "There are multiple label columns"
     elif err == Error.ERR_COLUMN_KEY_AND_LABEL:
-        abort(508)
-    abort(500)
+        errmsg = "There is a column which has key and label attribute"
+    elif err == Error.ERR_COLUMN_TYPE:
+        errmsg = "There exists a wrong column whose values are inconsistent with column type"
+    else:
+        return error_page_unknown()
+    return error_page(400, err, errmsg)
 
 
 def status_task(tid):
     extractor = _find_extractor(tid)
     if extractor is None:
-        abort(501)
-    return {"progress": extractor.get_progress()}
+        return error_page_no_task(tid)
+    prog = extractor.get_progress()
+    if prog is None:
+        return error_page_stopped(tid)
+
+    return {"progress": prog}
 
 
 def get_featureinfo(tid):
     extractor = _find_extractor(tid)
     if extractor is None:
-        abort(501)
+        return error_page_no_task(tid)
 
     infos = extractor.get_feature_info()
     if isinstance(infos, list):
@@ -88,56 +98,58 @@ def get_featureinfo(tid):
             res.append({"name": info[0], "type": info[1]})
         return jsonify(res)
 
-    if infos == Error.ERR_STOPPED:
-        abort(502)
+    if infos is None:
+        return error_page_stopped(tid)
     if infos == Error.ERR_ONGOING:
-        abort(503)
-    abort(500)
+        return error_page_not_completed(tid)
+    return error_page_unknown()
 
 
 def save_task(tid):
     json_in = request.json
     if json_in is None:
-        abort(400)
+        return error_page_wrong_json()
     if 'uri' not in json_in:
-        abort(400)
+        return error_page(400, Error.ERR_INVALID_ARG, "no 'uri' found in JSON body")
     extractor = _find_extractor(tid)
     if extractor is None:
-        abort(501)
+        return error_page_no_task(tid)
     else:
         path = json_in['uri']
         err = extractor.save(path)
         if err == Error.OK:
             return ""
-        if err == Error.ERR_STOPPED:
-            abort(502)
+        if err == ErrorSvc.ERR_STOPPED:
+            return error_page_stopped(tid)
         if err == Error.ERR_ONGOING:
-            abort(503)
-        abort(500)
+            return error_page_not_completed(tid)
+        return error_page_unknown()
 
 
 def stop_task(tid):
     extractor = _find_extractor(tid)
     if extractor is None:
-        abort(501)
+        return error_page_no_task(tid)
     else:
         err = extractor.stop()
         if err == Error.OK:
             return ""
-        if err == Error.ERR_STOPPED:
-            abort(502)
-        abort(500)
+        if err == ErrorSvc.ERR_STOPPED:
+            return error_page_stopped(tid)
+        if err == ErrorSvc.ERR_COMPLETED:
+            return error_page_already_completed(tid)
+        return error_page_unknown()
 
 
 def remove_task(tid):
     extractor = _find_extractor(tid)
     if extractor is None:
-        abort(501)
+        return error_page_no_task(tid)
     else:
         err = extractor.cleanup()
         if err == Error.OK:
             _remove_extractor(tid)
             return ""
         if err == Error.ERR_ONGOING:
-            abort(503)
-        abort(500)
+            return error_page_not_completed(tid)
+        return error_page_unknown()
