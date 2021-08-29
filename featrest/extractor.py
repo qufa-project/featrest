@@ -1,6 +1,7 @@
 from multiprocessing import (Process, Pipe)
 import threading
 import typing
+import os
 
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
@@ -23,6 +24,7 @@ class Extractor(FeatureExtractor):
             msg = self._conn.recv()
             if msg[0] == "save":
                 super().save(msg[1])
+                self._conn.send(Error.OK)
             elif msg[0] == "featureinfo":
                 self._conn.send(super().get_feature_info())
             elif msg[0] == "exit":
@@ -31,6 +33,7 @@ class Extractor(FeatureExtractor):
     def _extractor_func(self, operators, conn):
         self._conn = conn
         err = self.extract_features(operators)
+        os.remove(self._path_input)
         if err != Error.OK:
             self._conn.send(err)
         else:
@@ -54,7 +57,7 @@ class Extractor(FeatureExtractor):
         if not self._is_completed():
             return ErrorSvc.ERR_STOPPED
         self._conn.send(["save", path])
-        return Error.OK
+        return self._conn.recv()
 
     def get_feature_info(self):
         if self._is_running():
@@ -67,13 +70,14 @@ class Extractor(FeatureExtractor):
     def stop(self):
         if self._proc is None:
             return ErrorSvc.ERR_STOPPED
+        if self._is_completed():
+            return ErrorSvc.ERR_COMPLETED
         self._proc.terminate()
         self._proc.join(1)
         if self._proc.is_alive():
             return Error.ERR_ONGOING
+        os.remove(self._path_input)
         self._proc = None
-        if self._is_completed():
-            return ErrorSvc.ERR_COMPLETED
         return Error.OK
 
     def cleanup(self):

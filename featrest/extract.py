@@ -1,14 +1,17 @@
 import typing
-from typing import Union
 
 from flask import (request, jsonify)
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
 
+import s3
+import util
+
 from extractor import Extractor
 from errpage import (error_page, error_page_wrong_json, error_page_data_not_found, error_page_no_task,
                      error_page_not_completed, error_page_already_completed, error_page_stopped, error_page_unknown,
-                     ErrorSvc)
+                     error_page_column_count_mismatch, error_page_wrong_uri, error_page_column_type, ErrorSvc)
+from tmp_fpath import get_tmp_fpath
 
 
 extractors = []
@@ -44,11 +47,20 @@ def start_task():
     if 'uri' not in json_data or 'columns' not in json_data:
         return error_page(400, Error.ERR_INVALID_ARG, "no 'uri' or 'columns' found in data object")
 
-    path = json_data['uri']
+    uri = json_data['uri']
     columns = json_data['columns']
     operators = json_in['operator']
 
-    extractor = Extractor(path, columns)
+    tmp_fpath = get_tmp_fpath()
+    res = s3.download(uri, tmp_fpath)
+    if res == Error.ERR_DATA_NOT_FOUND:
+        return error_page_data_not_found()
+    elif res == ErrorSvc.ERR_URI_FORMAT:
+        return error_page_wrong_uri(uri)
+    elif res != Error.OK:
+        return error_page_unknown()
+
+    extractor = Extractor(tmp_fpath, columns)
     err = extractor.start(operators)
     if err == Error.OK:
         tid = _reg_extractor(extractor)
@@ -57,7 +69,7 @@ def start_task():
     if err == Error.ERR_DATA_NOT_FOUND:
         return error_page_data_not_found()
     elif err == Error.ERR_COLUMN_COUNT_MISMATCH:
-        errmsg = "The numbers of columns do not match"
+        return error_page_column_count_mismatch()
     elif err == Error.ERR_COLUMN_HAS_NO_NAME_OR_TYPE:
         errmsg = "There exists a column which has no name or type"
     elif err == Error.ERR_COLUMN_NO_KEY:
@@ -69,7 +81,7 @@ def start_task():
     elif err == Error.ERR_COLUMN_KEY_AND_LABEL:
         errmsg = "There is a column which has key and label attribute"
     elif err == Error.ERR_COLUMN_TYPE:
-        errmsg = "There exists a wrong column whose values are inconsistent with column type"
+        return error_page_column_type()
     else:
         return error_page_unknown()
     return error_page(400, err, errmsg)
@@ -115,10 +127,18 @@ def save_task(tid):
     if extractor is None:
         return error_page_no_task(tid)
     else:
-        path = json_in['uri']
-        err = extractor.save(path)
+        tmp_fpath = get_tmp_fpath()
+        err = extractor.save(tmp_fpath)
         if err == Error.OK:
+            uri = json_in['uri']
+            res = s3.upload(uri, tmp_fpath)
+            util.remove(tmp_fpath)
+            if res == ErrorSvc.ERR_URI_FORMAT:
+                return error_page_wrong_uri(uri)
+            elif res != Error.OK:
+                return error_page_unknown()
             return ""
+        util.remove(tmp_fpath)
         if err == ErrorSvc.ERR_STOPPED:
             return error_page_stopped(tid)
         if err == Error.ERR_ONGOING:

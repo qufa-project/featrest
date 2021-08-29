@@ -4,6 +4,7 @@ from featuretools.mkfeat.error import Error
 import threading
 
 from errpage import ErrorSvc
+import util
 
 
 class Analyzer(threading.Thread):
@@ -26,6 +27,8 @@ class Analyzer(threading.Thread):
 
     def run(self):
         err = self._impt.analyze()
+        util.remove(self._path_data)
+        util.remove(self._path_label)
         if err != Error.OK:
             self._prog = err
 
@@ -46,6 +49,8 @@ class Analyzer(threading.Thread):
         self.join(30)
         if self.is_alive():
             return Error.ERR_ONGOING
+        util.remove(self._path_data)
+        util.remove(self._path_label)
         return Error.OK
 
     def cleanup(self):
@@ -66,6 +71,6 @@ class Analyzer(threading.Thread):
             if self._prog is None:
                 return 0
             return self._prog
-        elif self._prog == 0:
+        elif self._prog == 100:
             return 100
         return None

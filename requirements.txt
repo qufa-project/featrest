@@ -10,3 +10,5 @@ pyzipcode
 phone_iso3166
 nltk
 psutil
+boto3
+botocore
