@@ -72,8 +72,8 @@ def start_task():
         return error_page_column_count_mismatch()
     elif err == Error.ERR_COLUMN_HAS_NO_NAME_OR_TYPE:
         errmsg = "There exists a column which has no name or type"
-    elif err == Error.ERR_COLUMN_NO_KEY:
-        errmsg = "There's no key column"
+    elif err == Error.ERR_COLUMN_BAD:
+        errmsg = "Key column is not unique or wrong"
     elif err == Error.ERR_COLUMN_MULTI_KEY:
         errmsg = "There are multiple key columns"
     elif err == Error.ERR_COLUMN_MULTI_LABEL:
