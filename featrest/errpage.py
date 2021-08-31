@@ -66,5 +66,10 @@ def error_page_column_type():
                       "There exists a wrong column whose values are inconsistent with column type")
 
 
+def error_page_data_label_count_mismatch():
+    return error_page(500, Error.ERR_DATA_LABEL_COUNT_MISMATCH,
+                      "The record count of data does not match with the count of the label file")
+
+
 def error_page_unknown():
     return error_page(500, Error.ERR_GENERAL, "Unknown error")

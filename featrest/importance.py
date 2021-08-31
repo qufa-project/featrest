@@ -5,7 +5,7 @@ from analyzer import Analyzer
 from errpage import (error_page, error_page_wrong_json, error_page_data_not_found, error_page_label_not_found,
                      error_page_no_task, error_page_not_completed, error_page_stopped, error_page_stop_failed,
                      error_page_unknown, error_page_wrong_uri, error_page_column_count_mismatch, error_page_column_type,
-                     ErrorSvc)
+                     error_page_data_label_count_mismatch, ErrorSvc)
 
 from tmp_fpath import get_tmp_fpath
 import s3
@@ -94,6 +94,8 @@ def start_task():
         return error_page_column_count_mismatch()
     if err == Error.ERR_COLUMN_TYPE:
         return error_page_column_type()
+    if err == Error.ERR_DATA_LABEL_COUNT_MISMATCH:
+        return error_page_data_label_count_mismatch()
     return error_page_unknown()
 
 
