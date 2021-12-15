@@ -4,3 +4,4 @@ __pycache__
 *~
 /dist
 /featrest.egg-info/
+/docker/*.tar.gz
