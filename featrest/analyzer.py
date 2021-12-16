@@ -3,8 +3,8 @@ from featuretools.mkfeat.error import Error
 
 import threading
 
-from errpage import ErrorSvc
-import util
+from .errpage import ErrorSvc
+from . import util
 
 
 class Analyzer(threading.Thread):

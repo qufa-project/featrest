@@ -1,9 +1,9 @@
 from flask import Flask
-import extract
-import importance
+from . import extract
+from . import importance
 
 
-app = Flask("featrest")
+app = Flask(__name__)
 
 
 @app.route("/extract", methods=['POST'])

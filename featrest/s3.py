@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from featuretools.mkfeat.error import Error
 
-from errpage import ErrorSvc
+from .errpage import ErrorSvc
 
 _aws_s3 = boto3.client('s3')
 

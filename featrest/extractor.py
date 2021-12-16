@@ -6,7 +6,7 @@ import os
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
 
-from errpage import ErrorSvc
+from .errpage import ErrorSvc
 
 
 class Extractor(FeatureExtractor):

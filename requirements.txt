@@ -1,7 +1,6 @@
 featuretools
 flask
 pandas
-autonormalize
 tqdm
 dask
 sklearn

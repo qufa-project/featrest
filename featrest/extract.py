@@ -4,14 +4,14 @@ from flask import (request, jsonify)
 from featuretools.mkfeat.feat_extractor import FeatureExtractor
 from featuretools.mkfeat.error import Error
 
-import s3
-import util
+from . import s3
+from . import util
 
-from extractor import Extractor
-from errpage import (error_page, error_page_wrong_json, error_page_data_not_found, error_page_no_task,
-                     error_page_not_completed, error_page_already_completed, error_page_stopped, error_page_unknown,
-                     error_page_column_count_mismatch, error_page_wrong_uri, error_page_column_type, ErrorSvc)
-from tmp_fpath import get_tmp_fpath
+from .extractor import Extractor
+from .errpage import (error_page, error_page_wrong_json, error_page_data_not_found, error_page_no_task,
+                      error_page_not_completed, error_page_already_completed, error_page_stopped, error_page_unknown,
+                      error_page_column_count_mismatch, error_page_wrong_uri, error_page_column_type, ErrorSvc)
+from .tmp_fpath import get_tmp_fpath
 
 
 extractors = []
