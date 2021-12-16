@@ -10,6 +10,7 @@ class ErrorSvc(str, Enum):
     ERR_COMPLETED = "ERR_COMPLETED"
     ERR_NO_TASK = "ERR_NO_TASK"
     ERR_URI_FORMAT = "ERR_URI_FORMAT"
+    ERR_AWS_CREDENTIALS = "ERR_AWS_CREDENTIALS"
 
 
 def error_page(code: int, err: Union[ErrorSvc, Error], errmsg: str):
@@ -69,6 +70,12 @@ def error_page_column_type():
 def error_page_data_label_count_mismatch():
     return error_page(500, Error.ERR_DATA_LABEL_COUNT_MISMATCH,
                       "The record count of data does not match with the count of the label file")
+
+
+def error_page_aws_credentials_not_found():
+    return error_page(500, ErrorSvc.ERR_AWS_CREDENTIALS,
+                      "AWS credentials not found. Please setup aws credentials or "
+                      "run with AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY environment variables")
 
 
 def error_page_unknown():

@@ -1,6 +1,6 @@
 import os
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 
 from urllib.parse import urlparse
 
@@ -21,7 +21,8 @@ def download(uri, fpath):
         if e.response['Error']['Code'] == '404':
             return Error.ERR_DATA_NOT_FOUND
         return Error.ERR_GENERAL
-
+    except NoCredentialsError as e:
+        return ErrorSvc.ERR_AWS_CREDENTIALS
     return Error.OK
 
 

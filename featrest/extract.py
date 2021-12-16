@@ -10,7 +10,8 @@ from . import util
 from .extractor import Extractor
 from .errpage import (error_page, error_page_wrong_json, error_page_data_not_found, error_page_no_task,
                       error_page_not_completed, error_page_already_completed, error_page_stopped, error_page_unknown,
-                      error_page_column_count_mismatch, error_page_wrong_uri, error_page_column_type, ErrorSvc)
+                      error_page_column_count_mismatch, error_page_wrong_uri, error_page_column_type,
+                      error_page_aws_credentials_not_found, ErrorSvc)
 from .tmp_fpath import get_tmp_fpath
 
 
@@ -57,6 +58,8 @@ def start_task():
         return error_page_data_not_found()
     elif res == ErrorSvc.ERR_URI_FORMAT:
         return error_page_wrong_uri(uri)
+    elif res == ErrorSvc.ERR_AWS_CREDENTIALS:
+        return error_page_aws_credentials_not_found()
     elif res != Error.OK:
         return error_page_unknown()
 
