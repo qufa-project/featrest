@@ -37,7 +37,7 @@ class Analyzer(threading.Thread):
                                        self._progress_handler)
 
         super().start()
-        self.join(0.5)
+        self.join(1.5)
         if self.is_alive() or self._prog == 100:
             return Error.OK
         return self._prog

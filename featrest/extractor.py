@@ -46,7 +46,7 @@ class Extractor(FeatureExtractor):
         self._conn = conn_parent
         self._progListener = ProgListener(conn_parent)
         self._progListener.start()
-        self._progListener.join(0.5)
+        self._progListener.join(1.5)
         if self._is_running() or self._is_completed():
             return Error.OK
         return self._progListener.prog
